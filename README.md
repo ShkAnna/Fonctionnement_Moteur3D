@@ -10,7 +10,7 @@
 
 |Affichage des points récupérés dans la console | Image avec des points uniquement | Résultat de l'algorithme de Bresenham |
 |:---:|:---:|:---:|
-|<img src="https://github.com/ShkAnna/Fonctionnement_Moteur3D/blob/main/images/points.png" width="265">  |  <img src="https://github.com/ShkAnna/Fonctionnement_Moteur3D/blob/main/images/head_points.png" width="300"> | <img src="https://github.com/ShkAnna/Fonctionnement_Moteur3D/blob/main/images/head_lines.png" width="300"> |
+|<img src="https://github.com/ShkAnna/Fonctionnement_Moteur3D/blob/main/images/points.png" width="265">  |  <img src="https://github.com/ShkAnna/Fonctionnement_Moteur3D/blob/main/images/head_points.png" width="350"> | <img src="https://github.com/ShkAnna/Fonctionnement_Moteur3D/blob/main/images/head_lines.png" width="270"> |
 
 
 
