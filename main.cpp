@@ -16,12 +16,16 @@ struct Vertex2D { double x, y; };
 struct Vertex3D { double x, y, z; };
 struct Triangle { int v1, v2, v3; };
 
+vector<Vertex3D> vertices;
+vector<Vertex2D> vertices2D;
+vector<Triangle> faces;
+
 constexpr unsigned int str2int(const char* str, int h = 0)
 {
     return !str[h] ? 5381 : (str2int(str, h+1) * 33) ^ str[h];
 }
 
-void getFacesAndVertices( string filename, vector<Vertex3D> &vertices, vector<Triangle> &faces, TGAImage &image)
+void getFacesAndVertices( string filename, TGAImage &image)
 {
     faces.clear();   vertices.clear();  
     string line, str, str2;
@@ -41,7 +45,7 @@ void getFacesAndVertices( string filename, vector<Vertex3D> &vertices, vector<Tr
             case str2int("v "):
             case str2int("V "):
                 ss >> x >> y >> z;
-                image.set((x*300+width/2), (y*300+height/2), white);
+                //image.set((x*300+width/2), (y*300+height/2), white);
                 vertices.push_back({x, y, z});
                 break;
 
@@ -56,60 +60,71 @@ void getFacesAndVertices( string filename, vector<Vertex3D> &vertices, vector<Tr
     in.close();
 }
 
-void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) { 
-    bool steep = false; 
-    if (std::abs(x0-x1)<std::abs(y0-y1)) { 
-        std::swap(x0, y0); 
-        std::swap(x1, y1); 
-        steep = true; 
+void line(Vertex2D vx1,  Vertex2D vx2, TGAImage &image, TGAColor color) {
+    int x0 = vx1.x, x1 = vx2.x, y0 = vx1.y, y1 = vx2.y;
+    bool steep = abs(x0-x1) < abs(y0-y1); 
+
+    if (steep) { 
+        swap(x0, y0); 
+        swap(x1, y1); 
     } 
     if (x0>x1) { 
-        std::swap(x0, x1); 
-        std::swap(y0, y1); 
+        swap(x0, x1); 
+        swap(y0, y1); 
     } 
-    int dx = x1-x0; 
-    int dy = y1-y0; 
-    int derror2 = std::abs(dy)*2; 
-    int error2 = 0; 
-    int y = y0; 
-    for (int x=x0; x<=x1; x++) { 
-        if (steep) { 
-            image.set(y, x, color); 
-        } else { 
-            image.set(x, y, color); 
-        } 
-        error2 += derror2; 
-        if (error2 > dx) { 
-            y += (y1>y0?1:-1); 
-            error2 -= dx*2; 
-        } 
-    } 
-} 
 
+    int dx = x1-x0, dy = abs(y1-y0);
+    int error = dx/2; 
+
+    while(x0 <= x1) { 
+        if (steep) { 
+            image.set(y0, x0, color); 
+        } else { 
+            image.set(x0, y0, color); 
+        } 
+        error -= dy; 
+        if (error < 0 ) { 
+            y0 += (y1>y0 ? 1:-1); 
+            error += dx; 
+        }
+        x0++; 
+    } 
+}
+
+Vertex2D getVertex(Triangle face, vector<Vertex3D> vertices, int k) {
+    int index;
+    switch(k) {
+        case 0: index = face.v1-1;break;
+        case 1: index = face.v2-1;break;
+        case 2: index = face.v3-1;break;
+    }
+    return {vertices[index].x*300+width/2.,vertices[index].y*300+height/2.};
+}
+
+void drawTriangle(Triangle face, TGAImage &image, TGAColor color) {
+    for(int j = 0; j < 3; j++) {
+        Vertex2D vx1 = getVertex(face, vertices, j);
+        Vertex2D vx2 = getVertex(face, vertices, (j+1)%3);
+        line(vx1, vx2, image, color);
+    }
+}
 
 int main(int argc, char** argv) {
-    vector<Vertex3D> vertices;
-    vector<Vertex2D> vertices2D;
-    vector<Triangle> faces;
+    
     string filename = "obj/african_head.obj";
     TGAImage image(width, height, TGAImage::RGB);    
-    getFacesAndVertices(filename, vertices, faces, image);
+    getFacesAndVertices(filename, image);
     
     cout << "Vertices:\n";
     for(Vertex3D v : vertices) {
         cout << v.x << "  " << v.y << "  " << v.z << '\n';
-        
     }
-    //image.set(v.x, v.y, white);  
-    //image.write_tga_file("result.tga");
-    //cout << "\n\n";
-    //TGAImage image(100, 100, TGAImage::RGB);
-	//image.set(52, 41, white);
+
+    for (size_t i = 0; i<faces.size(); i++) {
+        drawTriangle(faces[i], image, white);
+    }
 	image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
-    //line(13, 20, 80, 40, image, white); 
 	image.write_tga_file("result.tga");
-    //cout << "Triangles\n";
-    //for(Triangle t : faces) cout << t.v1 << "  " << t.v2 << "  " << t.v3 << '\n';
 
     return 0;
 }
