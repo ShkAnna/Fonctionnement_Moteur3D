@@ -141,13 +141,14 @@ Vertex3D barycentric(Vertex3D p, Vertex3D v1, Vertex3D v2, Vertex3D v3) {
 
 }
 
-void drawTriangle(Triangle face, TGAImage &image, TGAColor color) {
+void drawTriangle(Triangle face, float *zbuffer, TGAImage &image, TGAColor color) {
+    float z;
     Vertex3D v1 = getVertex(face, vertices, 0);
     Vertex3D v2 = getVertex(face, vertices, 1);
     Vertex3D v3 = getVertex(face, vertices, 2);
 
-    Vertex2D xymin {numeric_limits<float>::max(),  numeric_limits<float>::max()};
-    Vertex2D xymax {-numeric_limits<float>::max(), -numeric_limits<float>::max()};
+    Vertex2D xymin {INFINITY,  INFINITY};
+    Vertex2D xymax {-INFINITY, -INFINITY};
 
     xymax.x = max({v1.x, v2.x, v3.x, xymax.x});
     xymax.y = max({v1.y, v2.y, v3.y, xymax.y});
@@ -158,7 +159,12 @@ void drawTriangle(Triangle face, TGAImage &image, TGAColor color) {
         for (int y=xymin.y; y<=xymax.y; y++) {
             Vertex3D bary = barycentric({x,y}, v1, v2, v3);
             if (bary.x < 0 || bary.y < 0 || bary.z < 0) { continue; }
-            image.set(x, y,color);
+            z = 0;
+            z = v1.z*bary.x+v2.z*bary.y+v3.z*bary.z;
+            if (zbuffer[int(x+y*width)] < z) {
+                zbuffer[int(x+y*width)] = z;
+                image.set(x, y,color);
+            }
         }
     }
 }
@@ -174,19 +180,25 @@ int main(int argc, char** argv) {
     for(Vertex3D v : vertices) {
         cout << v.x << "  " << v.y << "  " << v.z << '\n';
     }
+    
+    float *zbuffer = new float[width*height];
+
+    for (uint32_t y = 0; y < height; ++y) 
+        for (uint32_t x = 0; x < width; ++x) 
+            zbuffer[x+y*width] = -INFINITY;
 
     for (size_t i = 0; i<faces.size(); i++) {
 
-    Vertex3D v1 = getVertex(faces[i], vertices, 0);
-    Vertex3D v2 = getVertex(faces[i], vertices, 1);
-    Vertex3D v3 = getVertex(faces[i], vertices, 2);
+        Vertex3D v1 = getVertex(faces[i], vertices, 0);
+        Vertex3D v2 = getVertex(faces[i], vertices, 1);
+        Vertex3D v3 = getVertex(faces[i], vertices, 2);
     
         Vertex3D n = crossProduct3D(diff(v1,v3),diff(v1,v2));
         float magnitude = sqrt(dotProduct3D(n,n));
         n = {n.x/magnitude, n.y/magnitude, n.z/magnitude};
         float intensity = dotProduct3D(multip(l,1),n);
         if (intensity>0) {
-            drawTriangle(faces[i], image, TGAColor(intensity*255, intensity*255, intensity*255, intensity*255));
+            drawTriangle(faces[i], zbuffer, image, TGAColor(intensity*255, intensity*255, intensity*255, intensity*255));
         }
     }
 	image.flip_vertically();
