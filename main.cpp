@@ -181,7 +181,13 @@ int main(int argc, char** argv) {
     Vertex3D v2 = getVertex(faces[i], vertices, 1);
     Vertex3D v3 = getVertex(faces[i], vertices, 2);
     
-    drawTriangle(faces[i], image, TGAColor(255, 255, 255, 255));
+        Vertex3D n = crossProduct3D(diff(v1,v3),diff(v1,v2));
+        float magnitude = sqrt(dotProduct3D(n,n));
+        n = {n.x/magnitude, n.y/magnitude, n.z/magnitude};
+        float intensity = dotProduct3D(multip(l,1),n);
+        if (intensity>0) {
+            drawTriangle(faces[i], image, TGAColor(intensity*255, intensity*255, intensity*255, intensity*255));
+        }
     }
 	image.flip_vertically();
 	image.write_tga_file("result.tga");
