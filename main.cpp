@@ -9,15 +9,12 @@
 #include <fstream>
 #include <algorithm>
 #include "tgaimage.h"
+#include "geom.h"
 using namespace std;
 
 const TGAColor white = TGAColor(255, 255, 255, 255);
 const int width  = 800;
 const int height = 800;
-
-struct Vertex2D { float x, y; };
-struct Vertex3D { float x, y, z; };
-struct Triangle { int v1, v2, v3, vt1, vt2, vt3, vn1, vn2, vn3; };
 
 vector<Vertex3D> vertices;
 vector<Vertex3D> textures;
@@ -25,6 +22,9 @@ vector<Vertex3D> normales;
 vector<Vertex2D> vertices2D;
 vector<Triangle> faces;
 TGAImage textureImg;
+
+Vertex3D l {0,0,-1}; //vecteur direction du lumiere 
+Vertex3D camera {0,0,3};
 
 constexpr unsigned int str2int(const char* str, int h = 0)
 {
@@ -68,7 +68,6 @@ void getFacesAndVertices( string filename)
 {
     faces.clear();   vertices.clear();  
     string line, str, str2;
-    int v1, v2, v3;
     float x, y, z;
     string sv1, sv2, sv3, svt1, svt2, svt3, svn1, svn2, svn3;
     vector<string> termes;
@@ -78,20 +77,16 @@ void getFacesAndVertices( string filename)
         if(line.find_first_of("vVfF") == string::npos) continue;
         
         istringstream ss( line );
-        //cout<<"line "<<line[0]<<'\n';
         ss >> str;
         str2 = line.substr(0, 2);
-        //cout<<"str2 "<<str2;
-        switch(str2int(str2.c_str())) {//str2int(str2.c_str())
+        switch(str2int(str2.c_str())) {
             case str2int("v "):
-            //case str2int("V "):
             {
                 ss >> x >> y >> z;
                 vertices.push_back({x, y, z});
                 break;
             }
             case str2int("f "):
-            //case str2int("F "):
             {
                 line = remplacerSlash(line);
                 istringstream ss( line );
@@ -103,9 +98,7 @@ void getFacesAndVertices( string filename)
             }
             case str2int("vt"):
             {
-                //cout<<"ss "<< line;
                 ss >> x >> y >> z;
-                //cout<<"x "<<x<<" y "<<y<<" z \n";
                 textures.push_back({x, y, z});
                 break;
             }
@@ -158,7 +151,8 @@ Vertex3D getVertex(Triangle face, vector<Vertex3D> vertices, int k) {
         case 1: index = face.v2-1;break;
         case 2: index = face.v3-1;break;
     }
-    return {(vertices[index].x+1.f)*width/2.f, (vertices[index].y+1.f)*height/2.f, vertices[index].z*width/2};
+    return {vertices[index].x,vertices[index].y, vertices[index].z};
+
 }
 
 Vertex3D getTextures(Triangle face, vector<Vertex3D> textures, int k) {
@@ -171,26 +165,9 @@ Vertex3D getTextures(Triangle face, vector<Vertex3D> textures, int k) {
     return {(textures[index].x), (textures[index].y), textures[index].z};
 }
 
-float dotProduct3D(Vertex3D v1, Vertex3D v2) {
-    return v1.x*v2.x+v1.y*v2.y+v1.z*v2.z;
-}
-
-Vertex3D crossProduct3D(Vertex3D v1, Vertex3D v2) {
-    return {v1.y*v2.z - v1.z*v2.y, v1.z*v2.x - v1.x*v2.z, v1.x*v2.y - v1.y*v2.x};
-}
-Vertex3D diff(Vertex3D v1, Vertex3D v2) {
-    return {v2.x-v1.x, v2.y-v1.y, v2.z-v1.z};
-}
-Vertex3D add(Vertex3D v1, Vertex3D v2) {
-    return {v1.x+v2.x, v1.y+v2.y, v1.z+v2.z};
-}
-Vertex3D multip(Vertex3D v1, float alpha) {
-    return {v1.x*alpha, v1.y*alpha, v1.z*alpha};
-}
-
 Vertex3D barycentric(Vertex3D p, Vertex3D v1, Vertex3D v2, Vertex3D v3) {
     float u,v,w, den;
-    Vertex3D v12 = diff(v1,v2), v13 = diff(v1,v3), v1p = diff(v1,p);
+    Vertex3D v12 = v2-v1, v13 = v3-v1, v1p = p-v1;
     den = v12.x * v13.y - v13.x * v12.y;
     v = (v1p.x * v13.y - v13.x * v1p.y) / den;
     w = (v12.x * v1p.y - v1p.x * v12.y) / den;
@@ -204,12 +181,22 @@ Vertex2D getUV(Vertex3D v, Vertex2D xymin, Vertex2D xymax) {
     return {v.x, v.y};
 }
 
-void drawTriangle(Triangle face, float *zbuffer, TGAImage &image, float intensity) {
+vector<vector<float>> viewport(int x, int y, int w, int h, int minZ, int maxZ) {
+    //translation*scaling
+    vector<vector<float>> m = identity(4);
+    m[0][0] = w/2.f;
+    m[1][1] = -h/2.f;
+    m[2][2] = maxZ-minZ;
+
+    m[0][3] = x+w/2.f;
+    m[1][3] = y+h/2.f;
+    m[2][3] = minZ;
+    return m;
+}
+
+void drawTriangle(Triangle face, Vertex3D v1, Vertex3D v2, Vertex3D v3, float *zbuffer, TGAImage &image, float intensity) {
     float z;
     Vertex3D tP;
-    Vertex3D v1 = getVertex(face, vertices, 0);
-    Vertex3D v2 = getVertex(face, vertices, 1);
-    Vertex3D v3 = getVertex(face, vertices, 2);
     Vertex3D t1 = getTextures(face, textures, 0);
     Vertex3D t2 = getTextures(face, textures, 1);
     Vertex3D t3 = getTextures(face, textures, 2);
@@ -230,13 +217,10 @@ void drawTriangle(Triangle face, float *zbuffer, TGAImage &image, float intensit
             if (bary.x < 0 || bary.y < 0 || bary.z < 0) { continue; }
             z = 0;
             z = v1.z*bary.x+v2.z*bary.y+v3.z*bary.z;
-            cout<<"x2 "<<x2<<" y2 "<<y2<<'\n';
-           
-            tP = add(add(multip(t1,bary.x),multip(t2,bary.y)),multip(t3,bary.z));
+            tP = t1*bary.x+t2*bary.y+t3*bary.z;
             TGAColor color = textureImg.get(tP.x*textureImg.get_width(),tP.y*textureImg.get_height());
-           
             if (zbuffer[int(x+y*width)] < z) {
-                zbuffer[int(x+y*width)] = z;
+                zbuffer[int(x+y*width)] = z; 
                 image.set(x, y, TGAColor(color.r*intensity,color.g*intensity,color.b*intensity, color.a*intensity));
             }
            
@@ -245,35 +229,38 @@ void drawTriangle(Triangle face, float *zbuffer, TGAImage &image, float intensit
 }
 
 int main(int argc, char** argv) {
-    
     string filename = "obj/african_head.obj";
     TGAImage image(width, height, TGAImage::RGB);
-    Vertex3D l {0,0,-1}; //vecteur direction du lumiere 
     getFacesAndVertices(filename);
     textureImg.read_tga_file("obj/african_head_diffuse.tga");
     textureImg.flip_vertically();
-
+    
     float *zbuffer = new float[width*height];
 
     for (uint32_t y = 0; y < height; ++y) 
         for (uint32_t x = 0; x < width; ++x) 
             zbuffer[x+y*width] = -INFINITY;
 
-    for (size_t i = 0; i<faces.size(); i++) {
+    vector<vector<float>> viewP = viewport(width/8, height/8, width*3/4, height*3/4, 0.f,1.f); //0.0 and 1.0 to enable the system to render to the entire range of depth values in the depth buffer
+    vector<vector<float>> projection = identity(4);
+    projection[3][2] = -1.f/camera.z;
+    vector<vector<float>> vp = viewP*projection;
 
+    for (size_t i = 0; i<faces.size(); i++) {
         Vertex3D v1 = getVertex(faces[i], vertices, 0);
         Vertex3D v2 = getVertex(faces[i], vertices, 1);
         Vertex3D v3 = getVertex(faces[i], vertices, 2);
-    
-        Vertex3D n = crossProduct3D(diff(v1,v3),diff(v1,v2));
-        float magnitude = sqrt(dotProduct3D(n,n));
-        n = {n.x/magnitude, n.y/magnitude, n.z/magnitude};
-        float intensity = dotProduct3D(multip(l,1),n);
+        Vertex3D n = normal((v3-v1)^(v2-v1));
+        
+        float intensity = l*n;
         if (intensity>0) {
-            drawTriangle(faces[i], zbuffer, image, intensity);
+            v1 = mtov(vp*vtom(v1));
+            v2 = mtov(vp*vtom(v2));
+            v3 = mtov(vp*vtom(v3));
+            drawTriangle(faces[i], v1, v2, v3, zbuffer, image, intensity);
         }
     }
-	image.flip_vertically();
+	//image.flip_vertically(); //-h in viewport make this 
 	image.write_tga_file("result.tga");
 
     return 0;
