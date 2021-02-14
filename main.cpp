@@ -113,18 +113,23 @@ void getFacesAndVertices( string filename)
 
 struct GouraudShader : public IShader {
     Vertex3D vIntensity;
+    Vertex3D vTexture[3];
 
     virtual Vertex4D vertex(Triangle face, int vId) {
         float i = getNormales(face, normales, vId)*l;
+        Vertex3D t = getTextures(face, textures, vId);
         switch(vId) {
             case 0 : 
                 vIntensity.x = i;
+                vTexture[0] = t;
                 break;
             case 1 : 
                 vIntensity.y = i;
+                vTexture[1] = t;
                 break;
             case 2 : 
                 vIntensity.z = i;
+                vTexture[2] = t;
                 break;
         }
         Vertex3D gl_Vertex = getVertex(face, vertices, vId);
@@ -134,14 +139,8 @@ struct GouraudShader : public IShader {
 
     virtual bool fragment(Vertex3D bary, TGAColor &color) {
         float intensity = vIntensity*bary;
-        //color = TGAColor(255, 255, 255)*intensity;
-        if (intensity>.85) intensity = 1;
-        else if (intensity>.60) intensity = .80;
-        else if (intensity>.45) intensity = .60;
-        else if (intensity>.30) intensity = .45;
-        else if (intensity>.15) intensity = .30;
-        else intensity = 0;
-        color = TGAColor(255, 155, 0)*intensity;
+        Vertex3D texture = vTexture[0]*bary.x+vTexture[1]*bary.y+vTexture[2]*bary.z;
+        color = textureImg.get(texture.x*textureImg.get_width(),texture.y*textureImg.get_height())*intensity;
         return false;
     }
 };
@@ -165,7 +164,7 @@ int main(int argc, char** argv) {
         Vertex4D v1 = shader.vertex(faces[i], 0);
         Vertex4D v2 = shader.vertex(faces[i], 1);
         Vertex4D v3 = shader.vertex(faces[i], 2);
-        drawTriangle(faces[i], v1, v2, v3, shader, zbuffer, image, textures);
+        drawTriangle(v1, v2, v3, shader, zbuffer, image);
     }
 	//image.flip_vertically(); //-h in viewport make this 
 	image.write_tga_file("result.tga");

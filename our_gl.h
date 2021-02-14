@@ -24,7 +24,7 @@ void line(Vertex3D vx1,  Vertex3D vx2, TGAImage &image, TGAColor color);
 Vertex3D getVertex(Triangle face, vector<Vertex3D> vertices, int k);
 Vertex3D getTextures(Triangle face, vector<Vertex3D> textures, int k);
 Vertex3D getNormales(Triangle face, vector<Vertex3D> normales, int k);
-void drawTriangle(Triangle face, Vertex4D v1, Vertex4D v2, Vertex4D v3, IShader &shader,
-TGAImage &zbuffer, TGAImage &image, vector<Vertex3D> textures);
+void drawTriangle(Vertex4D v1, Vertex4D v2, Vertex4D v3, IShader &shader,
+TGAImage &zbuffer, TGAImage &image);
 
 #endif

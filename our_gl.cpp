@@ -119,18 +119,10 @@ Vertex3D getNormales(Triangle face, vector<Vertex3D> normales, int k) {
     return {(normales[index].x), (normales[index].y), normales[index].z};
 }
 
-void drawTriangle(Triangle face, Vertex4D v1T, Vertex4D v2T, Vertex4D v3T, IShader &shader,
-TGAImage& zbuffer, TGAImage &image, vector<Vertex3D> textures) {
+void drawTriangle(Vertex4D v1T, Vertex4D v2T, Vertex4D v3T, IShader &shader,
+TGAImage& zbuffer, TGAImage &image) {
     float z,w,shadow;
     Vertex3D tP;
-
-    Vertex3D t1 = getTextures(face, textures, 0);
-    Vertex3D t2 = getTextures(face, textures, 1);
-    Vertex3D t3 = getTextures(face, textures, 2);
-
-    //float i1 = getNormales(face, normales, 0)*l;
-    //float i2 = getNormales(face, normales, 1)*l;
-    //float i3 = getNormales(face, normales, 2)*l;
 
     Vertex2D xymin {INFINITY,  INFINITY};
     Vertex2D xymax {-INFINITY, -INFINITY};
@@ -144,29 +136,16 @@ TGAImage& zbuffer, TGAImage &image, vector<Vertex3D> textures) {
     TGAColor color;
     for (int x=xymin.x; x<=xymax.x; x++) {
         for (int y=xymin.y; y<=xymax.y; y++) {
-            //Vertex3D v1T = v4tov3(v1);
-            //Vertex3D v2T = v4tov3(v2);
-            //Vertex3D v3T = v4tov3(v3);
-            //cout<<"v1 et v1T "<<v1T.x<<" "<<v1T.w<<" "<<v1T.x/v1T.w<<" "<<v1.x<<"\n";
             Vertex3D bary = barycentric({x,y}, v1, v2, v3);
-            
             z = 0;
             z = v1T.z*bary.x+v2T.z*bary.y+v3T.z*bary.z;
             w = v1T.w*bary.x+v2T.w*bary.y+v3T.w*bary.z;
-            //cout<<"w "<<v1T.w<<" "<<v2T.w<<" "<<v3T.w<<"\n";
-            //tP = t1*bary.x+t2*bary.y+t3*bary.z;
-            //shadow = i1*bary.x+i2*bary.y+i3*bary.z;
-            //cout<<"Z/w "<<int(z/w+5.)<<"\n";
             int frag_depth = std::min(255, int(z/w));
-            //cout<<"frag_depth "<<frag_depth<<"\n";
             //TGAColor color = textureImg.get(tP.x*textureImg.get_width(),tP.y*textureImg.get_height());
             if (bary.x < 0 || bary.y < 0 || bary.z < 0||zbuffer.get(x, y)[0]>frag_depth) { continue; }
             cout<<"Bary "<<bary.x<<" "<<bary.y<<" "<<bary.z<<"\n";
             bool discard = shader.fragment(bary, color);
             if(!discard ){
-            //if (zbuffer[int(x+y*width)] < z) {//&& !discard){
-                //zbuffer[int(x+y*width)] = z; 
-                //image.set(x, y, TGAColor(255*shadow, 255*shadow, 255*shadow,255*shadow));
                 zbuffer.set(x, y, TGAColor(frag_depth));
                 image.set(x, y, color);
             }
