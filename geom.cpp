@@ -25,6 +25,15 @@ vector<vector<float>> identity(int size) {
     return id;
 }
 
+vector<vector<float>> transpose(vector<vector<float>> m) {
+    vector<vector<float>> t = matrix(cols(m),rows(m));
+    for (int i = 0; i < rows(m); ++i)
+      for (int j = 0; j < cols(m); ++j) {
+         t[j][i] = m[i][j];
+      }
+    return t;
+}
+
 int rows(vector<vector<float>> m) {
     return m.size();  
 }
@@ -55,6 +64,9 @@ vector<vector<float>> vtom(Vertex3D v) {
 Vertex3D mtov(vector<vector<float>>  m) {
     return {m[0][0]/m[3][0], m[1][0]/m[3][0], m[2][0]/m[3][0]};
 }
+Vertex3D v4tov3(Vertex4D v) {
+    return {v.x/v.w, v.y/v.w, v.z/v.w};
+}
 //dot product
 float operator*(Vertex3D v1, Vertex3D v2) {
     return v1.x*v2.x+v1.y*v2.y+v1.z*v2.z;
@@ -76,4 +88,20 @@ Vertex3D operator*(Vertex3D v1, float alpha) {
 Vertex3D normal(Vertex3D v){
     float magnitude = sqrt(v*v);
     return {v.x/magnitude, v.y/magnitude, v.z/magnitude};
+}
+
+Vertex3D barycentric(Vertex3D p, Vertex3D v1, Vertex3D v2, Vertex3D v3) {
+    float u,v,w, den;
+    Vertex3D v12 = v2-v1, v13 = v3-v1, v1p = p-v1;
+    den = v12.x * v13.y - v13.x * v12.y;
+    v = (v1p.x * v13.y - v13.x * v1p.y) / den;
+    w = (v12.x * v1p.y - v1p.x * v12.y) / den;
+    u = 1.0f - v - w;
+    return {u,v,w} ;
+}
+
+Vertex2D getUV(Vertex3D v, Vertex2D xymin, Vertex2D xymax) {
+    v.x = (v.x - xymin.x) / (xymax.x - xymin.x);
+    v.y = (v.y - xymin.y) / (xymax.y - xymin.y);
+    return {v.x, v.y};
 }
