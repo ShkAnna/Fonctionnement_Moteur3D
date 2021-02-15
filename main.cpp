@@ -22,7 +22,7 @@ vector<Vertex3D> textures;
 vector<Vertex3D> normales;
 vector<Vertex2D> vertices2D;
 vector<Triangle> faces;
-TGAImage textureImg;
+TGAImage textureImg, textureImgNm;
 
 constexpr unsigned int str2int(const char* str, int h = 0)
 {
@@ -112,23 +112,24 @@ void getFacesAndVertices( string filename)
 }
 
 struct GouraudShader : public IShader {
-    Vertex3D vIntensity;
+    //Vertex3D vIntensity;
     Vertex3D vTexture[3];
+    vector<vector<float>> mp = Projection*ModelView;
 
     virtual Vertex4D vertex(Triangle face, int vId) {
-        float i = getNormales(face, normales, vId)*l;
+        //float i = getNormales(face, normales, vId)*l;
         Vertex3D t = getTextures(face, textures, vId);
         switch(vId) {
             case 0 : 
-                vIntensity.x = i;
+                //vIntensity.x = i;
                 vTexture[0] = t;
                 break;
             case 1 : 
-                vIntensity.y = i;
+                //vIntensity.y = i;
                 vTexture[1] = t;
                 break;
             case 2 : 
-                vIntensity.z = i;
+                //vIntensity.z = i;
                 vTexture[2] = t;
                 break;
         }
@@ -138,8 +139,18 @@ struct GouraudShader : public IShader {
     }
 
     virtual bool fragment(Vertex3D bary, TGAColor &color) {
-        float intensity = vIntensity*bary;
+        //float intensity = vIntensity*bary;
         Vertex3D texture = vTexture[0]*bary.x+vTexture[1]*bary.y+vTexture[2]*bary.z;
+        color = textureImgNm.get(texture.x*textureImgNm.get_width(),texture.y*textureImgNm.get_height());
+        Vertex3D res;
+        res.z = (float)color[0]/255.f*2.f - 1.f;
+        res.y = (float)color[1]/255.f*2.f - 1.f;
+        res.x = (float)color[2]/255.f*2.f - 1.f;
+        vector<vector<float>> mpT = transpose(mp);
+        Vertex3D n = normal(mtov(mpT*vtom(res)));
+        //cout<<"n "<<n.x<<" "<<n.y<<" "<<n.z<<"\n";
+        Vertex3D ld = normal(mtov(mp*vtom(l)));
+        float intensity = max(0.f, n*ld);
         color = textureImg.get(texture.x*textureImg.get_width(),texture.y*textureImg.get_height())*intensity;
         return false;
     }
@@ -153,7 +164,9 @@ int main(int argc, char** argv) {
     TGAImage zbuffer(width, height, TGAImage::GRAYSCALE);
     getFacesAndVertices(filename);
     textureImg.read_tga_file("obj/african_head_diffuse.tga");
+    textureImgNm.read_tga_file("obj/african_head_nm.tga");
     textureImg.flip_vertically();
+    textureImgNm.flip_vertically();
 
     viewport(width/8, height/8, width*3/4, height*3/4, 255); //0.0 and 1.0 to enable the system to render to the entire range of depth values in the depth buffer
     projection(-1.f/camera.z);

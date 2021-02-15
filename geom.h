@@ -33,5 +33,6 @@ Vertex3D operator*(Vertex3D v1, float alpha);
 Vertex3D normal(Vertex3D v);
 Vertex3D barycentric(Vertex3D p, Vertex3D v1, Vertex3D v2, Vertex3D v3);
 Vertex2D getUV(Vertex3D v, Vertex2D xymin, Vertex2D xymax);
+vector<vector<float>> transpose(vector<vector<float>> m);
 
 #endif

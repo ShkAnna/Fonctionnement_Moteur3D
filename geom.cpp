@@ -25,6 +25,15 @@ vector<vector<float>> identity(int size) {
     return id;
 }
 
+vector<vector<float>> transpose(vector<vector<float>> m) {
+    vector<vector<float>> t = matrix(cols(m),rows(m));
+    for (int i = 0; i < rows(m); ++i)
+      for (int j = 0; j < cols(m); ++j) {
+         t[j][i] = m[i][j];
+      }
+    return t;
+}
+
 int rows(vector<vector<float>> m) {
     return m.size();  
 }

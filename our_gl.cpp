@@ -143,7 +143,7 @@ TGAImage& zbuffer, TGAImage &image) {
             int frag_depth = std::min(255, int(z/w));
             //TGAColor color = textureImg.get(tP.x*textureImg.get_width(),tP.y*textureImg.get_height());
             if (bary.x < 0 || bary.y < 0 || bary.z < 0||zbuffer.get(x, y)[0]>frag_depth) { continue; }
-            cout<<"Bary "<<bary.x<<" "<<bary.y<<" "<<bary.z<<"\n";
+            //cout<<"Bary "<<bary.x<<" "<<bary.y<<" "<<bary.z<<"\n";
             bool discard = shader.fragment(bary, color);
             if(!discard ){
                 zbuffer.set(x, y, TGAColor(frag_depth));
