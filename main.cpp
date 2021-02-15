@@ -22,7 +22,7 @@ vector<Vertex3D> textures;
 vector<Vertex3D> normales;
 vector<Vertex2D> vertices2D;
 vector<Triangle> faces;
-TGAImage textureImg, textureImgNm;
+TGAImage textureImg, textureImgNm, textureImgSp;
 
 constexpr unsigned int str2int(const char* str, int h = 0)
 {
@@ -115,6 +115,7 @@ struct GouraudShader : public IShader {
     //Vertex3D vIntensity;
     Vertex3D vTexture[3];
     vector<vector<float>> mp = Projection*ModelView;
+    vector<vector<float>> mpT = transpose(mp);
 
     virtual Vertex4D vertex(Triangle face, int vId) {
         //float i = getNormales(face, normales, vId)*l;
@@ -143,15 +144,18 @@ struct GouraudShader : public IShader {
         Vertex3D texture = vTexture[0]*bary.x+vTexture[1]*bary.y+vTexture[2]*bary.z;
         color = textureImgNm.get(texture.x*textureImgNm.get_width(),texture.y*textureImgNm.get_height());
         Vertex3D res;
-        res.z = (float)color[0]/255.f*2.f - 1.f;
-        res.y = (float)color[1]/255.f*2.f - 1.f;
-        res.x = (float)color[2]/255.f*2.f - 1.f;
-        vector<vector<float>> mpT = transpose(mp);
+        res.x = color[2]/255.f*2.f - 1.f;
+        res.y = color[1]/255.f*2.f - 1.f;
+        res.z = color[0]/255.f*2.f - 1.f;
         Vertex3D n = normal(mtov(mpT*vtom(res)));
-        //cout<<"n "<<n.x<<" "<<n.y<<" "<<n.z<<"\n";
         Vertex3D ld = normal(mtov(mp*vtom(l)));
+        Vertex3D r = normal(n*(n*ld*2.f) - ld);
+        float tmpSp = textureImgSp.get(texture.x*textureImgSp.get_width(),texture.y*textureImgSp.get_height())[0]/1.f;
+        float spec = pow(max(r.z, 0.0f),tmpSp);
         float intensity = max(0.f, n*ld);
-        color = textureImg.get(texture.x*textureImg.get_width(),texture.y*textureImg.get_height())*intensity;
+        color = textureImg.get(texture.x*textureImg.get_width(),texture.y*textureImg.get_height());
+        for (int i=0; i<3; i++) color[i] = min<float>(5 + color[i]*(intensity + .6*spec), 255);
+        //5 ambient, 1 diffuse, 6 specular
         return false;
     }
 };
@@ -165,10 +169,12 @@ int main(int argc, char** argv) {
     getFacesAndVertices(filename);
     textureImg.read_tga_file("obj/african_head_diffuse.tga");
     textureImgNm.read_tga_file("obj/african_head_nm.tga");
+    textureImgSp.read_tga_file("obj/african_head_spec.tga");
     textureImg.flip_vertically();
     textureImgNm.flip_vertically();
+    textureImgSp.flip_vertically();
 
-    viewport(width/8, height/8, width*3/4, height*3/4, 255); //0.0 and 1.0 to enable the system to render to the entire range of depth values in the depth buffer
+    viewport(width/8, height/8, width*3/4, height*3/4, 255); 
     projection(-1.f/camera.z);
     lookAt(camera, center);
     GouraudShader shader;

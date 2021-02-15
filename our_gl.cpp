@@ -121,9 +121,8 @@ Vertex3D getNormales(Triangle face, vector<Vertex3D> normales, int k) {
 
 void drawTriangle(Vertex4D v1T, Vertex4D v2T, Vertex4D v3T, IShader &shader,
 TGAImage& zbuffer, TGAImage &image) {
-    float z,w,shadow;
+    float z,w;
     Vertex3D tP;
-
     Vertex2D xymin {INFINITY,  INFINITY};
     Vertex2D xymax {-INFINITY, -INFINITY};
     Vertex3D v1 = v4tov3(v1T);
@@ -140,16 +139,12 @@ TGAImage& zbuffer, TGAImage &image) {
             z = 0;
             z = v1T.z*bary.x+v2T.z*bary.y+v3T.z*bary.z;
             w = v1T.w*bary.x+v2T.w*bary.y+v3T.w*bary.z;
-            int frag_depth = std::min(255, int(z/w));
-            //TGAColor color = textureImg.get(tP.x*textureImg.get_width(),tP.y*textureImg.get_height());
-            if (bary.x < 0 || bary.y < 0 || bary.z < 0||zbuffer.get(x, y)[0]>frag_depth) { continue; }
-            //cout<<"Bary "<<bary.x<<" "<<bary.y<<" "<<bary.z<<"\n";
-            bool discard = shader.fragment(bary, color);
-            if(!discard ){
+            int frag_depth = min(255, int(z/w));
+            if (bary.x < 0 || bary.y < 0 || bary.z < 0 || zbuffer.get(x, y)[0] > frag_depth) { continue; }
+            if(!shader.fragment(bary, color)){
                 zbuffer.set(x, y, TGAColor(frag_depth));
                 image.set(x, y, color);
             }
-           
         }
     }
 }
