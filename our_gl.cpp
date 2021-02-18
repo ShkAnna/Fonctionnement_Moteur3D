@@ -41,16 +41,8 @@ void lookAt(const Vertex3D& from, const Vertex3D& to)
     Vertex3D forward = normal(from-to); 
     Vertex3D right = normal(normal(tmp)^forward); 
     Vertex3D up = normal(forward^right); 
-    
-    ModelView[0][0] = right.x; 
-    ModelView[0][1] = right.y; 
-    ModelView[0][2] = right.z; 
-    ModelView[1][0] = up.x; 
-    ModelView[1][1] = up.y; 
-    ModelView[1][2] = up.z; 
-    ModelView[2][0] = forward.x; 
-    ModelView[2][1] = forward.y; 
-    ModelView[2][2] = forward.z; 
+
+    fill3m3(ModelView, right, up, forward);
  
     ModelView[3][0] = -to.x; 
     ModelView[3][1] = -to.y; 
@@ -106,7 +98,7 @@ Vertex3D getTextures(Triangle face, vector<Vertex3D> textures, int k) {
         case 1: index = face.vt2-1;break;
         case 2: index = face.vt3-1;break;
     }
-    return {(textures[index].x), (textures[index].y), textures[index].z};
+    return {textures[index].x, textures[index].y, textures[index].z};
 }
 
 Vertex3D getNormales(Triangle face, vector<Vertex3D> normales, int k) {
@@ -116,13 +108,12 @@ Vertex3D getNormales(Triangle face, vector<Vertex3D> normales, int k) {
         case 1: index = face.vn2-1;break;
         case 2: index = face.vn3-1;break;
     }
-    return {(normales[index].x), (normales[index].y), normales[index].z};
+    return {normales[index].x, normales[index].y, normales[index].z};
 }
 
 void drawTriangle(Vertex4D v1T, Vertex4D v2T, Vertex4D v3T, IShader &shader,
-TGAImage& zbuffer, TGAImage &image) {
+float *zbuffer, TGAImage &image) {
     float z,w;
-    Vertex3D tP;
     Vertex2D xymin {INFINITY,  INFINITY};
     Vertex2D xymax {-INFINITY, -INFINITY};
     Vertex3D v1 = v4tov3(v1T);
@@ -136,13 +127,12 @@ TGAImage& zbuffer, TGAImage &image) {
     for (int x=xymin.x; x<=xymax.x; x++) {
         for (int y=xymin.y; y<=xymax.y; y++) {
             Vertex3D bary = barycentric({x,y}, v1, v2, v3);
-            z = 0;
             z = v1T.z*bary.x+v2T.z*bary.y+v3T.z*bary.z;
             w = v1T.w*bary.x+v2T.w*bary.y+v3T.w*bary.z;
-            int frag_depth = min(255, int(z/w));
-            if (bary.x < 0 || bary.y < 0 || bary.z < 0 || zbuffer.get(x, y)[0] > frag_depth) { continue; }
-            if(!shader.fragment(bary, color)){
-                zbuffer.set(x, y, TGAColor(frag_depth));
+            float frag_depth = min(255.f, z/w);
+            if (bary.x < 0 || bary.y < 0 || bary.z < 0 || zbuffer[int(x+y*width)] > frag_depth) { continue; }
+            if (!shader.fragment(bary, color)) {
+                zbuffer[int(x+y*width)] = frag_depth;
                 image.set(x, y, color);
             }
         }
