@@ -124,7 +124,7 @@ struct GouraudShader : public IShader {
         vTexture[vId] = getTextures(face, textures, vId);
 
         Vertex3D nm =  getNormales(face, normales, vId);
-        vNm[vId] = mtov(mpT*vtom(nm));
+        vNm[vId] = mtov(mp*vtom(nm));
 
         Vertex3D gl_Vertex = getVertex(face, vertices, vId);
         vector<vector<float>> res = mp*vtom(gl_Vertex);
@@ -147,37 +147,38 @@ struct GouraudShader : public IShader {
         u = {uv1.x, uv2.x,0};
         v = {uv1.y, uv2.y,0};
 
-        fill3m3(A, pos1, pos2, nm);
-        if(!inverse(A, invA)) {return true;}
-        
-        //float f = 1.f/(uv1.x*uv2.y-uv2.x*uv1.y);
-        //tangent = normal((pos1*uv2.y+pos2*(-uv1.y))*f);
-        //bitangent = normal((pos1*(-uv2.x)+pos2*uv1.x)*f);
-        //cout<<"Tan "<<tangent.x<<" "<<tangent.y<<" "<<tangent.z<<"\n";
         color = textureImgNm.get(texture.x*textureImgNm.get_width(),texture.y*textureImgNm.get_height());
         Vertex3D res;
         res.x = color.r/255.f*2.f-1.f;
         res.y = color.g/255.f*2.f-1.f;
-        res.z = color.b/255.f*2.f-1.f;
+        res.z = color.b/255.f*2.f-1.f;    
         res = normal(res);
-        
-        /*Vertex3D T = normal(mtov(mp*vtom(tangent)));
-        Vertex3D B = normal(mtov(mp*vtom(bitangent)));
-        Vertex3D N = normal(mtov(mp*vtom(nm)));*/
+    
+       /* float f = 1.f/(uv1.x*uv2.y-uv2.x*uv1.y);
+        Vertex3D tangent = normal((pos1*uv2.y+pos2*(-uv1.y))*f);
+        Vertex3D bitangent = normal((pos1*(-uv2.x)+pos2*uv1.x)*f);*/
+        //cout<<"Tan "<<tangent.x<<" "<<tangent.y<<" "<<tangent.z<<"\n";
+
+        fill3m3(A, pos1, pos2, nm);
+        //if(!inverse(A, invA)) {return true;}
+        //inverse(A,invA);
+        //invA = transpose(invA);
+        invA = inverseM(A);
+        //Vertex3D T = normal(mtov(mp*vtom(tangent)));
+        //Vertex3D B = normal(mtov(mp*vtom(bitangent)));
+        //Vertex3D N = normal(mtov(mp*vtom(nm)));
         //T = normal(T-(N*(T*N)));
         //Vertex3D B = N^T;
         Vertex3D T = normal(mtov(invA*vtom(u)));
         Vertex3D B = normal(mtov(invA*vtom(v)));
-        //Vertex3D N = normal(mtov(invA*vtom(nm)));
         
         vector<vector<float>> TBN = identity(4);
         fill3m3(TBN,T, B, nm);
-        //inverse(TBN,TBN);
         TBN = transpose(TBN);
         
-        res = normal(mtov(mp*TBN*vtom(res)));
-        cout<<"Res "<<res.x<<" "<<res.y<<" "<<res.z<<"\n";
-        float intensity = max(0.f, res*l);
+        res = (mtov(TBN*vtom(res)));
+        //cout<<"Res "<<res.x<<" "<<res.y<<" "<<res.z<<"\n";
+        float intensity = max(0.f, normal(mtov(mp*vtom(res)))*l);
         color = textureImg.get(texture.x*textureImg.get_width(),texture.y*textureImg.get_height());
         color = TGAColor(color.r*intensity, color.g*intensity, color.b*intensity, color.a*intensity);
         return false;

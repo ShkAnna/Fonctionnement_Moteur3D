@@ -128,12 +128,13 @@ float *zbuffer, TGAImage &image) {
     for (int x=xymin.x; x<=xymax.x; x++) {
         for (int y=xymin.y; y<=xymax.y; y++) {
             Vertex3D bary = barycentric({x,y}, v1, v2, v3);
-            z = v1T.z*bary.x+v2T.z*bary.y+v3T.z*bary.z;
-            w = v1T.w*bary.x+v2T.w*bary.y+v3T.w*bary.z;
-            int frag_depth = min(255, int(z/w));
-            if (bary.x < 0 || bary.y < 0 || bary.z < 0 || zbuffer[int(x+y*width)] > frag_depth) { continue; }
+            z = v1.z*bary.x+v2.z*bary.y+v3.z*bary.z;
+            //z = v1T.z*bary.x+v2T.z*bary.y+v3T.z*bary.z;
+            //w = v1T.w*bary.x+v2T.w*bary.y+v3T.w*bary.z;
+            //int frag_depth = min(255, int(z/w));
+            if (bary.x < 0 || bary.y < 0 || bary.z < 0 || zbuffer[int(x+y*width)] > z) { continue; }
             if (!shader.fragment(bary, color)) {
-                zbuffer[int(x+y*width)] = frag_depth;
+                zbuffer[int(x+y*width)] = z;
                 image.set(x, y, color);
             }
         }

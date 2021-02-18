@@ -45,5 +45,6 @@ vector<vector<float>> fill3m3(vector<vector<float>> &m, Vertex3D r1, Vertex3D r2
 float det(vector<vector<float>> A,int n);
 vector<vector<float>> cofactor(vector<vector<float>> A,int n, float determ);
 bool inverse(vector<vector<float>> A, vector<vector<float>> &inverse);
+vector<vector<float>> inverseM(vector<vector<float>> matr);
 
 #endif
