@@ -25,6 +25,6 @@ Vertex3D getVertex(Triangle face, vector<Vertex3D> vertices, int k);
 Vertex3D getTextures(Triangle face, vector<Vertex3D> textures, int k);
 Vertex3D getNormales(Triangle face, vector<Vertex3D> normales, int k);
 void drawTriangle(Vertex4D v1, Vertex4D v2, Vertex4D v3, IShader &shader,
-TGAImage &zbuffer, TGAImage &image);
+float *zbuffer, TGAImage &image);
 
 #endif
