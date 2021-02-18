@@ -39,4 +39,15 @@
 
 |Perspective projection |
 |:---:|
-|  <img src="https://github.com/ShkAnna/Fonctionnement_Moteur3D/blob/main/images/perspective_projection.png" width="250">  |
+<img src="https://github.com/ShkAnna/Fonctionnement_Moteur3D/blob/main/images/perspective_projection.png" width="300">
+
+**<h2>Cours 5 - Bouger la caméra</h2>**
+<img src="https://github.com/ShkAnna/Fonctionnement_Moteur3D/blob/main/images/camera.png" width="300">
+
+**<h2>Cours 6 - Shaders pour le logiciel de rendu </h2>**
+|Les intensités ne peuvent avoir que 6 valeurs | Specular mapping | 
+|:---:|:---:|
+|<img src="https://github.com/ShkAnna/Fonctionnement_Moteur3D/blob/main/images/diffIntensities.png" width="300">|<img src="https://github.com/ShkAnna/Fonctionnement_Moteur3D/blob/main/images/phong.png" width="300">|
+
+**<h2>Cours 6bis - mappage normal de l'espace tangent </h2>**
+<img src="https://github.com/ShkAnna/Fonctionnement_Moteur3D/blob/main/images/tangent.png" width="300">
