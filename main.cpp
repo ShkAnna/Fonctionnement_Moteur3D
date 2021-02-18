@@ -128,13 +128,13 @@ struct GouraudShader : public IShader {
 
         Vertex3D gl_Vertex = getVertex(face, vertices, vId);
         vector<vector<float>> res = mp*vtom(gl_Vertex);
-        triang[vId] = mtov(res);//normal(mtov(mp*vtom(gl_Vertex)));
+        triang[vId] = mtov(res);
 
-        return {res[0][0],res[1][0],res[2][0],res[3][0]};
+        return m4tov4(res);
     }
 
     virtual bool fragment(Vertex3D bary, TGAColor &color) {
-        vector<vector<float>> A = identity(4), invA = matrix(4,4),darboux = matrix(3,3);
+        vector<vector<float>> A = identity(4), invA = matrix(4,4);
         Vertex3D texture, nm, u, v;
         texture = vTexture[0]*bary.x+vTexture[1]*bary.y+vTexture[2]*bary.z;
         nm = normal(vNm[0]*bary.x+vNm[1]*bary.y+vNm[2]*bary.z);
@@ -149,7 +149,6 @@ struct GouraudShader : public IShader {
 
         fill3m3(A, pos1, pos2, nm);
         if(!inverse(A, invA)) {return true;}
-        //inverse(A, invA);
         
         //float f = 1.f/(uv1.x*uv2.y-uv2.x*uv1.y);
         //tangent = normal((pos1*uv2.y+pos2*(-uv1.y))*f);
@@ -167,17 +166,16 @@ struct GouraudShader : public IShader {
         Vertex3D N = normal(mtov(mp*vtom(nm)));*/
         //T = normal(T-(N*(T*N)));
         //Vertex3D B = N^T;
-        Vertex3D T = normal(mtov(invA*vtom(u))); //i
-        Vertex3D B = normal(mtov(invA*vtom(v))); //j
+        Vertex3D T = normal(mtov(invA*vtom(u)));
+        Vertex3D B = normal(mtov(invA*vtom(v)));
         //Vertex3D N = normal(mtov(invA*vtom(nm)));
         
-        vector<vector<float>> TBN = identity(4);//matrix(3,3);
+        vector<vector<float>> TBN = identity(4);
         fill3m3(TBN,T, B, nm);
         //inverse(TBN,TBN);
         TBN = transpose(TBN);
         
         res = normal(mtov(mp*TBN*vtom(res)));
-        //res = normal(mtov(mp*vtom(res)));
         cout<<"Res "<<res.x<<" "<<res.y<<" "<<res.z<<"\n";
         float intensity = max(0.f, res*l);
         color = textureImg.get(texture.x*textureImg.get_width(),texture.y*textureImg.get_height());
