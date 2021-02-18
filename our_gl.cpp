@@ -4,6 +4,7 @@
 #include "tgaimage.h"
 #include "geom.h"
 #include "our_gl.h"
+using namespace std;
 
 const TGAColor white = TGAColor(255, 255, 255, 255);
 const int width  = 800;
@@ -129,7 +130,7 @@ float *zbuffer, TGAImage &image) {
             Vertex3D bary = barycentric({x,y}, v1, v2, v3);
             z = v1T.z*bary.x+v2T.z*bary.y+v3T.z*bary.z;
             w = v1T.w*bary.x+v2T.w*bary.y+v3T.w*bary.z;
-            float frag_depth = min(255.f, z/w);
+            int frag_depth = min(255, int(z/w));
             if (bary.x < 0 || bary.y < 0 || bary.z < 0 || zbuffer[int(x+y*width)] > frag_depth) { continue; }
             if (!shader.fragment(bary, color)) {
                 zbuffer[int(x+y*width)] = frag_depth;

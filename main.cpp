@@ -135,7 +135,7 @@ struct GouraudShader : public IShader {
 
     virtual bool fragment(Vertex3D bary, TGAColor &color) {
         vector<vector<float>> A = identity(4), invA = matrix(4,4),darboux = matrix(3,3);
-        Vertex3D texture, nm, u, v, i, j, tangent, bitangent, bitangenttest;
+        Vertex3D texture, nm, u, v;
         texture = vTexture[0]*bary.x+vTexture[1]*bary.y+vTexture[2]*bary.z;
         nm = normal(vNm[0]*bary.x+vNm[1]*bary.y+vNm[2]*bary.z);
 
@@ -157,9 +157,9 @@ struct GouraudShader : public IShader {
         //cout<<"Tan "<<tangent.x<<" "<<tangent.y<<" "<<tangent.z<<"\n";
         color = textureImgNm.get(texture.x*textureImgNm.get_width(),texture.y*textureImgNm.get_height());
         Vertex3D res;
-        res.x = color[2]/255.f*2.f-1.f;
-        res.y = color[1]/255.f*2.f-1.f;
-        res.z = color[0]/255.f*2.f-1.f;
+        res.x = color.r/255.f*2.f-1.f;
+        res.y = color.g/255.f*2.f-1.f;
+        res.z = color.b/255.f*2.f-1.f;
         res = normal(res);
         
         /*Vertex3D T = normal(mtov(mp*vtom(tangent)));
@@ -167,8 +167,8 @@ struct GouraudShader : public IShader {
         Vertex3D N = normal(mtov(mp*vtom(nm)));*/
         //T = normal(T-(N*(T*N)));
         //Vertex3D B = N^T;
-        Vertex3D T = normal(mtov(invA*vtom(u)));
-        Vertex3D B = normal(mtov(invA*vtom(v)));
+        Vertex3D T = normal(mtov(invA*vtom(u))); //i
+        Vertex3D B = normal(mtov(invA*vtom(v))); //j
         //Vertex3D N = normal(mtov(invA*vtom(nm)));
         
         vector<vector<float>> TBN = identity(4);//matrix(3,3);
@@ -180,7 +180,8 @@ struct GouraudShader : public IShader {
         //res = normal(mtov(mp*vtom(res)));
         cout<<"Res "<<res.x<<" "<<res.y<<" "<<res.z<<"\n";
         float intensity = max(0.f, res*l);
-        color = textureImg.get(texture.x*textureImg.get_width(),texture.y*textureImg.get_height())*intensity;
+        color = textureImg.get(texture.x*textureImg.get_width(),texture.y*textureImg.get_height());
+        color = TGAColor(color.r*intensity, color.g*intensity, color.b*intensity, color.a*intensity);
         return false;
     }
 };
@@ -189,11 +190,10 @@ int main(int argc, char** argv) {
     int width = getWidth();
     int height = getHeight();
     string filename = "obj/african_head.obj";
-    //TGAImage zbuffer(width, height, TGAImage::GRAYSCALE);
     float *zbuffer = new float[width*height];
 
-    for (uint32_t y = 0; y < height; ++y) 
-        for (uint32_t x = 0; x < width; ++x) 
+    for (int y = 0; y < height; ++y) 
+        for (int x = 0; x < width; ++x) 
             zbuffer[x+y*width] = -INFINITY;
     getFacesAndVertices(filename);
     textureImg.read_tga_file("obj/african_head_diffuse.tga");//grid.tga");//
