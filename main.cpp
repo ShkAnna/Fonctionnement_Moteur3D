@@ -24,6 +24,8 @@ vector<Vertex2D> vertices2D;
 vector<Triangle> faces;
 TGAImage textureImg, textureImgNm, textureImgSp;
 TGAImage image(getWidth(), getHeight(), TGAImage::RGB);
+TGAImage depth(getWidth(), getHeight(), TGAImage::RGB);
+float *shadowbuffer;
 
 constexpr unsigned int str2int(const char* str, int h = 0)
 {
@@ -112,9 +114,9 @@ void getFacesAndVertices( string filename)
     in.close();
 }
 
-struct GouraudShader : public IShader {
+struct Shader : public IShader {
     Vertex3D vTexture[3];
-    Vertex3D vNm[3];
+    //Vertex3D vNm[3];
     Vertex3D triang[3];
     vector<vector<float>> mp = Projection*ModelView;
     vector<vector<float>> mvp = Viewport*Projection*ModelView;
@@ -123,64 +125,62 @@ struct GouraudShader : public IShader {
     virtual Vertex4D vertex(Triangle face, int vId) {
         vTexture[vId] = getTextures(face, textures, vId);
 
-        Vertex3D nm =  getNormales(face, normales, vId);
-        vNm[vId] = mtov(mp*vtom(nm));
+        //Vertex3D nm =  getNormales(face, normales, vId);
+        //vNm[vId] = mtov(mp*vtom(nm));
 
         Vertex3D gl_Vertex = getVertex(face, vertices, vId);
-        vector<vector<float>> res = mp*vtom(gl_Vertex);
+        vector<vector<float>> res = mvp*vtom(gl_Vertex);
         triang[vId] = mtov(res);
-
         return m4tov4(res);
     }
 
     virtual bool fragment(Vertex3D bary, TGAColor &color) {
-        vector<vector<float>> A = identity(4), invA = matrix(4,4);
-        Vertex3D texture, nm, u, v;
+        Vertex3D texture,tri,unishadow; 
+        vector<vector<float>> mvpInv = matrix(4,4), mpIT = matrix(4,4);
         texture = vTexture[0]*bary.x+vTexture[1]*bary.y+vTexture[2]*bary.z;
-        nm = normal(vNm[0]*bary.x+vNm[1]*bary.y+vNm[2]*bary.z);
-
-        Vertex3D pos1 = (triang[1]-triang[0]);
-        Vertex3D pos2 = (triang[2]-triang[0]);
-
-        Vertex3D uv1 = (vTexture[1]-vTexture[0]);
-        Vertex3D uv2 = (vTexture[2]-vTexture[0]);
-        u = {uv1.x, uv2.x,0};
-        v = {uv1.y, uv2.y,0};
+        tri = triang[0]*bary.x+triang[1]*bary.y+triang[2]*bary.z;
 
         color = textureImgNm.get(texture.x*textureImgNm.get_width(),texture.y*textureImgNm.get_height());
         Vertex3D res;
-        res.x = color.r/255.f*2.f-1.f;
-        res.y = color.g/255.f*2.f-1.f;
-        res.z = color.b/255.f*2.f-1.f;    
-        res = normal(res);
-    
-       /* float f = 1.f/(uv1.x*uv2.y-uv2.x*uv1.y);
-        Vertex3D tangent = normal((pos1*uv2.y+pos2*(-uv1.y))*f);
-        Vertex3D bitangent = normal((pos1*(-uv2.x)+pos2*uv1.x)*f);*/
-        //cout<<"Tan "<<tangent.x<<" "<<tangent.y<<" "<<tangent.z<<"\n";
+        res.x = color[2]/255.f*2.f - 1.f;
+        res.y = color[1]/255.f*2.f - 1.f;
+        res.z = color[0]/255.f*2.f - 1.f;
 
-        fill3m3(A, pos1, pos2, nm);
-        //if(!inverse(A, invA)) {return true;}
-        //inverse(A,invA);
-        //invA = transpose(invA);
-        invA = inverseM(A);
-        //Vertex3D T = normal(mtov(mp*vtom(tangent)));
-        //Vertex3D B = normal(mtov(mp*vtom(bitangent)));
-        //Vertex3D N = normal(mtov(mp*vtom(nm)));
-        //T = normal(T-(N*(T*N)));
-        //Vertex3D B = N^T;
-        Vertex3D T = normal(mtov(invA*vtom(u)));
-        Vertex3D B = normal(mtov(invA*vtom(v)));
+        inverse(mvp, mvpInv);
+        mvpInv = transpose(mvpInv);
+        unishadow = mtov(mvp*mvpInv*vtom(tri));
+        int idx = int(unishadow.x)+int(unishadow.y)*getWidth();
+        float shadow = .3+.7*(shadowbuffer[idx] < unishadow.z+43.34);
         
-        vector<vector<float>> TBN = identity(4);
-        fill3m3(TBN,T, B, nm);
-        TBN = transpose(TBN);
-        
-        res = (mtov(TBN*vtom(res)));
-        //cout<<"Res "<<res.x<<" "<<res.y<<" "<<res.z<<"\n";
-        float intensity = max(0.f, normal(mtov(mp*vtom(res)))*l);
+        inverse(mp,mpIT);
+        vector<vector<float>> modelv = matrix(4,4);
+        inverse(ModelView,modelv);
+        Vertex3D n = normal(mtov(modelv*vtom(res)));
+        l = normal(mtov(mpIT*vtom(l)));
+        Vertex3D r = normal(n*(n*l*2.f)-l);
+        float tmpSp = textureImgSp.get(texture.x*textureImgSp.get_width(),texture.y*textureImgSp.get_height())[0]/1.f;
+        float spec = pow(max(r.z, 0.0f),tmpSp);
+        float diff = max(0.f, n*l);
         color = textureImg.get(texture.x*textureImg.get_width(),texture.y*textureImg.get_height());
-        color = TGAColor(color.r*intensity, color.g*intensity, color.b*intensity, color.a*intensity);
+        for (int i=0; i<3; i++) color[i] = min<float>(20 + color[i]*shadow*(1.2*diff + .6*spec), 255);
+        return false;
+    }
+};
+
+struct DepthShader : public IShader {
+    Vertex3D triang[3];
+
+    virtual Vertex4D vertex(Triangle face, int vId) {
+        Vertex3D gl_Vertex = getVertex(face, vertices, vId);
+        vector<vector<float>> res = Viewport*Projection*ModelView*vtom(gl_Vertex);
+        triang[vId] = mtov(res);
+        return m4tov4(res);
+    }
+
+    virtual bool fragment(Vertex3D bary, TGAColor &color) {
+        Vertex3D tri = triang[0]*bary.x+triang[1]*bary.y+triang[2]*bary.z;
+
+        color = TGAColor(255,255,255)*(tri.z/255.f);
         return false;
     }
 };
@@ -190,28 +190,45 @@ int main(int argc, char** argv) {
     int height = getHeight();
     string filename = "obj/african_head.obj";
     float *zbuffer = new float[width*height];
+    shadowbuffer=  new float[width*height];
 
     for (int y = 0; y < height; ++y) 
         for (int x = 0; x < width; ++x) 
-            zbuffer[x+y*width] = -INFINITY;
+            zbuffer[x+y*width] = shadowbuffer[x+y*width] = -INFINITY;
+
     getFacesAndVertices(filename);
-    textureImg.read_tga_file("obj/african_head_diffuse.tga");//grid.tga");//
+    textureImg.read_tga_file("obj/african_head_diffuse.tga");
     textureImgNm.read_tga_file("obj/african_head_nm_tangent.tga");
-    //textureImgSp.read_tga_file("obj/african_head_spec.tga");
+    textureImgSp.read_tga_file("obj/african_head_spec.tga");
     textureImg.flip_vertically();
     textureImgNm.flip_vertically();
-    //textureImgSp.flip_vertically();
+    textureImgSp.flip_vertically();
 
     viewport(width/8, height/8, width*3/4, height*3/4, 255); 
-    projection(-1.f/camera.z);
-    lookAt(camera, center);
-    l = normal(mtov(Projection*ModelView*vtom(l)));
-    GouraudShader shader;
 
+    lookAt(l,center);
+    projection(0);
+    
+    DepthShader depthshader;
     for (size_t i = 0; i<faces.size(); i++) {
-        Vertex4D v1 = m4tov4(Viewport*v4tom(shader.vertex(faces[i], 0)));
-        Vertex4D v2 = m4tov4(Viewport*v4tom(shader.vertex(faces[i], 1)));
-        Vertex4D v3 = m4tov4(Viewport*v4tom(shader.vertex(faces[i], 2)));
+        Vertex4D v1 = depthshader.vertex(faces[i], 0);
+        Vertex4D v2 = depthshader.vertex(faces[i], 1);
+        Vertex4D v3 = depthshader.vertex(faces[i], 2);
+        
+        drawTriangle(v1, v2, v3, depthshader, shadowbuffer, depth);
+    }
+    depth.write_tga_file("depth.tga");
+    
+    lookAt(camera, center);
+    Vertex3D cc = camera-center;
+    projection(-1.f/sqrt(cc*cc));
+    
+    Shader shader;
+    for (size_t i = 0; i<faces.size(); i++) {
+        Vertex4D v1 = shader.vertex(faces[i], 0);
+        Vertex4D v2 = shader.vertex(faces[i], 1);
+        Vertex4D v3 = shader.vertex(faces[i], 2);
+        
         drawTriangle(v1, v2, v3, shader, zbuffer, image);
     }
 	//image.flip_vertically(); //-h in viewport make this 
