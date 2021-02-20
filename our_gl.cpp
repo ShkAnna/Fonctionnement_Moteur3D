@@ -120,6 +120,7 @@ float *zbuffer, TGAImage &image) {
     Vertex3D v1 = v4tov3(v1T);
     Vertex3D v2 = v4tov3(v2T);
     Vertex3D v3 = v4tov3(v3T);
+    
     xymax.x = max({v1.x, v2.x, v3.x, xymax.x});
     xymax.y = max({v1.y, v2.y, v3.y, xymax.y});
     xymin.x = min({v1.x, v2.x, v3.x, xymin.x});
@@ -132,6 +133,7 @@ float *zbuffer, TGAImage &image) {
             //z = v1T.z*bary.x+v2T.z*bary.y+v3T.z*bary.z;
             //w = v1T.w*bary.x+v2T.w*bary.y+v3T.w*bary.z;
             //int frag_depth = min(255, int(z/w));
+
             if (bary.x < 0 || bary.y < 0 || bary.z < 0 || zbuffer[int(x+y*width)] > z) { continue; }
             if (!shader.fragment(bary, color)) {
                 zbuffer[int(x+y*width)] = z;

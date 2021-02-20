@@ -205,7 +205,6 @@ vector<vector<float>> cofactor(vector<vector<float>> A,int n,float determ) {
     return d;	
 }
 
-
 bool inverse(vector<vector<float>> A, vector<vector<float>>& inverse) { 
     float determ = det(A, rows(A)); 
     if (determ == 0.f) { 
@@ -216,48 +215,4 @@ bool inverse(vector<vector<float>> A, vector<vector<float>>& inverse) {
         inverse = cofactor(A,rows(A),determ);
     }
     return true; 
-} 
-
-// Inverse de matrice
-vector<vector<float>> inverseM(vector<vector<float>> matr) {
-	float s0 = matr[0][0] * matr[1][1] - matr[1][0] * matr[0][1];
-	float s1 = matr[0][0] * matr[1][2] - matr[1][0] * matr[0][2];
-	float s2 = matr[0][0] * matr[1][3] - matr[1][0] * matr[0][3];
-	float s3 = matr[0][1] * matr[1][2] - matr[1][1] * matr[0][2];
-	float s4 = matr[0][1] * matr[1][3] - matr[1][1] * matr[0][3];
-	float s5 = matr[0][2] * matr[1][3] - matr[1][2] * matr[0][3];
-
-	float c5 = matr[2][2] * matr[3][3] - matr[3][2] * matr[2][3];
-	float c4 = matr[2][1] * matr[3][3] - matr[3][1] * matr[2][3];
-	float c3 = matr[2][1] * matr[3][2] - matr[3][1] * matr[2][2];
-	float c2 = matr[2][0] * matr[3][3] - matr[3][0] * matr[2][3];
-	float c1 = matr[2][0] * matr[3][2] - matr[3][0] * matr[2][2];
-	float c0 = matr[2][0] * matr[3][1] - matr[3][0] * matr[2][1];
-
-	// Should check for 0 determinant
-	float invdet = 1.0 / (s0 * c5 - s1 * c4 + s2 * c3 + s3 * c2 - s4 * c1 + s5 * c0);
-
-	vector<vector<float>> inv = matrix(rows(matr), cols(matr));
-
-	inv[0][0] = (matr[1][1] * c5 - matr[1][2] * c4 + matr[1][3] * c3) * invdet;
-	inv[0][1] = (-matr[0][1] * c5 + matr[0][2] * c4 - matr[0][3] * c3) * invdet;
-	inv[0][2] = (matr[3][1] * s5 - matr[3][2] * s4 + matr[3][3] * s3) * invdet;
-	inv[0][3] = (-matr[2][1] * s5 + matr[2][2] * s4 - matr[2][3] * s3) * invdet;
-
-	inv[1][0] = (-matr[1][0] * c5 + matr[1][2] * c2 - matr[1][3] * c1) * invdet;
-	inv[1][1] = (matr[0][0] * c5 - matr[0][2] * c2 + matr[0][3] * c1) * invdet;
-	inv[1][2] = (-matr[3][0] * s5 + matr[3][2] * s2 - matr[3][3] * s1) * invdet;
-	inv[1][3] = (matr[2][0] * s5 - matr[2][2] * s2 + matr[2][3] * s1) * invdet;
-
-	inv[2][0] = (matr[1][0] * c4 - matr[1][1] * c2 + matr[1][3] * c0) * invdet;
-	inv[2][1] = (-matr[0][0] * c4 + matr[0][1] * c2 - matr[0][3] * c0) * invdet;
-	inv[2][2] = (matr[3][0] * s4 - matr[3][1] * s2 + matr[3][3] * s0) * invdet;
-	inv[2][3] = (-matr[2][0] * s4 + matr[2][1] * s2 - matr[2][3] * s0) * invdet;
-
-	inv[3][0] = (-matr[1][0] * c3 + matr[1][1] * c1 - matr[1][2] * c0) * invdet;
-	inv[3][1] = (matr[0][0] * c3 - matr[0][1] * c1 + matr[0][2] * c0) * invdet;
-	inv[3][2] = (-matr[3][0] * s3 + matr[3][1] * s1 - matr[3][2] * s0) * invdet;
-	inv[3][3] = (matr[2][0] * s3 - matr[2][1] * s1 + matr[2][2] * s0) * invdet;
-
-	return inv;
 }
