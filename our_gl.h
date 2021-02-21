@@ -14,6 +14,12 @@ struct IShader {
     virtual bool fragment(Vertex3D bary, TGAColor &color) = 0;
 };
 
+/*struct I2Shader {
+    virtual ~I2Shader();
+    virtual Vertex4D vertex(Triangle iface, int nthvert) = 0;
+    virtual bool fragment(Vertex3D fragm, Vertex3D bary, TGAColor &color) = 0;
+};*/
+
 int getWidth();
 int getHeight();
 void viewport(int x, int y, int w, int h, int depth);

@@ -14,7 +14,7 @@
 using namespace std;
 
 Vertex3D l =normal({1,1,1});//{1,-1,1} //vecteur direction du lumiere 
-Vertex3D camera {1,1,3};//{0,0,3};
+Vertex3D camera {1.2,-.8,3};//{0,0,3};
 Vertex3D center {0,0,0};
 
 vector<Vertex3D> vertices;
@@ -185,16 +185,45 @@ struct DepthShader : public IShader {
     }
 };
 
+struct ZShader : public IShader {
+    Vertex3D triang[3];
+
+    virtual Vertex4D vertex(Triangle face, int vId) {
+        Vertex3D gl_Vertex = getVertex(face, vertices, vId);
+        vector<vector<float>> res = Viewport*Projection*ModelView*vtom(gl_Vertex);
+        triang[vId] = mtov(res);
+        return m4tov4(res);
+    }
+
+    virtual bool fragment(Vertex3D bary, TGAColor &color) {
+        color = TGAColor(0, 0, 0);
+        return false;
+    }
+};
+
+float max_elevation_angle(float *zbuffer, Vertex3D p, Vertex3D dir) {
+    float maxangle = 0;
+    for (float t = 0.; t < 1000.; t++) {
+        Vertex3D cur = p + dir*t;
+        if (cur.x >= getWidth() || cur.y >= getHeight() || cur.x < 0 || cur.y < 0) return maxangle;
+
+        float distance = sqrt((p-cur)*(p-cur));
+        if (distance < 1.f) continue;
+        float elevation = zbuffer[int(cur.x)+int(cur.y)*getWidth()]-zbuffer[int(p.x)+int(p.y)*getWidth()];
+        maxangle = max(maxangle, atanf(elevation/distance));
+    }
+    return maxangle;
+}
+
 int main(int argc, char** argv) {
     int width = getWidth();
     int height = getHeight();
     string filename = "obj/african_head.obj";
     float *zbuffer = new float[width*height];
-    shadowbuffer=  new float[width*height];
 
     for (int y = 0; y < height; ++y) 
         for (int x = 0; x < width; ++x) 
-            zbuffer[x+y*width] = shadowbuffer[x+y*width] = -INFINITY;
+            zbuffer[x+y*width] = -INFINITY;
 
     getFacesAndVertices(filename);
     textureImg.read_tga_file("obj/african_head_diffuse.tga");
@@ -205,33 +234,33 @@ int main(int argc, char** argv) {
     textureImgSp.flip_vertically();
 
     viewport(width/8, height/8, width*3/4, height*3/4, 255); 
-
-    lookAt(l,center);
-    projection(0);
-    
-    DepthShader depthshader;
-    for (size_t i = 0; i<faces.size(); i++) {
-        Vertex4D v1 = depthshader.vertex(faces[i], 0);
-        Vertex4D v2 = depthshader.vertex(faces[i], 1);
-        Vertex4D v3 = depthshader.vertex(faces[i], 2);
-        
-        drawTriangle(v1, v2, v3, depthshader, shadowbuffer, depth);
-    }
-    depth.write_tga_file("depth.tga");
     
     lookAt(camera, center);
     Vertex3D cc = camera-center;
     projection(-1.f/sqrt(cc*cc));
     
-    Shader shader;
+    ZShader zshader;
     for (size_t i = 0; i<faces.size(); i++) {
-        Vertex4D v1 = shader.vertex(faces[i], 0);
-        Vertex4D v2 = shader.vertex(faces[i], 1);
-        Vertex4D v3 = shader.vertex(faces[i], 2);
+        Vertex4D v1 = zshader.vertex(faces[i], 0);
+        Vertex4D v2 = zshader.vertex(faces[i], 1);
+        Vertex4D v3 = zshader.vertex(faces[i], 2);
         
-        drawTriangle(v1, v2, v3, shader, zbuffer, image);
+        drawTriangle(v1, v2, v3, zshader, zbuffer, image);
     }
-	//image.flip_vertically(); //-h in viewport make this 
+    
+    float ssao;
+    for (int x=0; x<width; x++) {
+        for (int y=0; y<height; y++) {
+            if (zbuffer[x+y*width] < 0) continue;
+            ssao = 0;
+            for (float angle = 0; angle < M_PI*2-1e-4; angle += M_PI/4) {
+                ssao += M_PI/2 - max_elevation_angle(zbuffer, {x, y, 0}, {cos(angle), sin(angle), 0});
+            }
+            ssao /= (M_PI/2)*8;
+            image.set(x, y, TGAColor(ssao*255,ssao*255,ssao*255));
+        }
+    }
+
 	image.write_tga_file("result.tga");
 
     return 0;
