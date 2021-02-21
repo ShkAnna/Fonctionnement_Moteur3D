@@ -51,3 +51,15 @@
 
 **<h2>Cours 6bis - mappage normal de l'espace tangent </h2>**
 <img src="https://github.com/ShkAnna/Fonctionnement_Moteur3D/blob/main/images/tangent.png" width="300">
+
+**<h2>Cours 7 - Shadow mapping </h2>**
+|Shadow shader | Résultat du rendu d'ombre | 
+|:---:|:---:|
+|<img src="https://github.com/ShkAnna/Fonctionnement_Moteur3D/blob/main/images/shadow_bw.png" width="300">|<img src="https://github.com/ShkAnna/Fonctionnement_Moteur3D/blob/main/images/shadow.png" width="300">|
+
+
+**<h2>Cours 8 - Ambient occlusion </h2>**
+|Rendu d'occlusion ambiante  | Rendu avec contraste | 
+|:---:|:---:|
+|<img src="https://github.com/ShkAnna/Fonctionnement_Moteur3D/blob/main/images/ambient.png" width="300">|<img src="https://github.com/ShkAnna/Fonctionnement_Moteur3D/blob/main/images/ambient_contrast.png" width="300">|
+
