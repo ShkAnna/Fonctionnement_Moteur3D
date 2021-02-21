@@ -18,6 +18,7 @@ vector<vector<float>> Viewport;
 vector<vector<float>> Projection;
 
 IShader::~IShader() {}
+//I2Shader::~I2Shader() {}
 
 void viewport(int x, int y, int w, int h, int depth) {
     //translation*scaling
@@ -136,6 +137,7 @@ float *zbuffer, TGAImage &image) {
 
             if (bary.x < 0 || bary.y < 0 || bary.z < 0 || zbuffer[int(x+y*width)] > z) { continue; }
             if (!shader.fragment(bary, color)) {
+                //cout<<"Z "<<z<<"\n";
                 zbuffer[int(x+y*width)] = z;
                 image.set(x, y, color);
             }
