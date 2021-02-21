@@ -257,6 +257,7 @@ int main(int argc, char** argv) {
                 ssao += M_PI/2 - max_elevation_angle(zbuffer, {x, y, 0}, {cos(angle), sin(angle), 0});
             }
             ssao /= (M_PI/2)*8;
+            ssao = pow(ssao, 10.f);
             image.set(x, y, TGAColor(ssao*255,ssao*255,ssao*255));
         }
     }
